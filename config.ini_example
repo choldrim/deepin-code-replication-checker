@@ -1,0 +1,8 @@
+[gitlab]
+token=xxx
+
+[github]
+token=xxx
+
+[gerrit]
+token=xxx
