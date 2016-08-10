@@ -4,11 +4,17 @@ from datetime import datetime
 
 import requests
 
+from utils.singleton import Singleton
+
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
-class Gerrit:
+class Gerrit(Singleton):
     def __init__(self):
+        if hasattr(self, '_init'):
+            return
+        self._init = True
+
         if CACHE_MODE:
             self.project_data = self.__load_from_file('cache/gerrit.json')
         else:
@@ -30,6 +36,7 @@ class Gerrit:
 
 
     def __init_projects(self):
+        print('initializing gerrit project ...')
         project_data = {}
         data = self.__get_json('https://cr.deepin.io/projects/')
 
@@ -37,11 +44,6 @@ class Gerrit:
             print('getting project (%s)' % proj_name)
             p_id = p.get('id')
             branches = self.__get_branches(p_id)
-
-            for (name, b) in branches.items():
-                commit_id = b.get('commit_id')
-                b['timestamp'] = self.__get_commit_timestamp(p_id, commit_id)
-
             project_data[proj_name] = {'branches': branches}
 
         return project_data
@@ -58,17 +60,22 @@ class Gerrit:
         return timestamp
 
 
-    def __get_branches(self, name):
+    def __get_branches(self, proj_name):
         branches = {}
-        data = self.__get_json('https://cr.deepin.io/projects/%s/branches' % name)
+        data = self.__get_json('https://cr.deepin.io/projects/%s/branches' % proj_name)
 
         for p in data:
             if p.get('ref') == 'HEAD':
                 continue
+
             name = p.get('ref')
+
             if 'refs/heads/' in name:
                 name = name.split('refs/heads/')[1]
-            branches[name] = {'commit_id': p.get('revision')}
+
+            commit_id = p.get('revision')
+            ts = self.__get_commit_timestamp(proj_name, commit_id)
+            branches[name] = {'commit_id': commit_id, 'timestamp': ts}
 
         return branches
 

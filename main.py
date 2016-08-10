@@ -6,8 +6,9 @@ from datetime import datetime
 
 import requests
 
-from lib.gitlab import GitlabChecker
 from lib.gerrit import Gerrit
+from lib.gitlab import GitlabChecker
+from lib.github import GithubChecker
 from utils.color_print import warning
 from utils.color_print import success
 from utils.color_print import fail
@@ -28,11 +29,15 @@ def check_commit_deltatime(commit_timestamp):
 
 
 def work():
+    checkers = []
     base = Gerrit()
 
-    # gitlab
-    gitlab = GitlabChecker()
-    check(base, gitlab)
+    checkers.append(GitlabChecker())
+    checkers.append(GithubChecker())
+
+    for c in checkers:
+        print('xxxxxxxxxxxxxxxxxx %s xxxxxxxxxxxxxxxxxxxxxxx' % (c.get_name()))
+        check(base, c)
 
 
 def check(base, target):
@@ -68,19 +73,30 @@ def check(base, target):
 
 
 def charge_cache():
-    b = Base()
-    with open('cache/gitlab.json', 'w') as fp:
-        json.dump(b.project_data, fp, indent=4, sort_keys=True)
+    print('charging cache...')
 
-    b = GitlabChecker()
-    with open('cache/gitlab.json', 'w') as fp:
-        json.dump(b.project_data, fp, indent=4, sort_keys=True)
+    gr_cache_file = 'cache/gitlab.json'
+    if not os.path.exists(gr_cache_file):
+        gr = Gerrit()
+        with open(gr_cache_file, 'w') as fp:
+            json.dump(gr.project_data, fp, indent=4, sort_keys=True)
+
+    gl_cache_file = 'cache/gitlab.json'
+    if not os.path.exists(gl_cache_file):
+        gl = GitlabChecker()
+        with open(gl_cache_file, 'w') as fp:
+            json.dump(gl.project_data, fp, indent=4, sort_keys=True)
+
+    gh_cache_file = 'cache/github.json'
+    if not os.path.exists(gh_cache_file):
+        gh = GithubChecker()
+        with open(gh_cache_file, 'w') as fp:
+            json.dump(gh.project_data, fp, indent=4, sort_keys=True)
 
 
 if __name__ == '__main__':
-    #charge_cache()
-
     if CACHE_MODE:
-        print('cache mode, load data from cache file')
+        print('cache mode(for debug), load data from cache file')
+        charge_cache()
 
     work()

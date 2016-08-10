@@ -23,11 +23,17 @@ class GitlabChecker(Singleton):
         else:
             self.project_data = self.__init_projects()
 
+
+    def get_name(self):
+        return 'Gitlab checker'
+
+
     def __load_from_file(self, path):
         with open(path) as fp:
             data = json.load(fp)
 
         return data
+
 
     def __get_json(self, url):
         token = os.getenv('GITLAB_TOKEN')
@@ -58,8 +64,9 @@ class GitlabChecker(Singleton):
 
 
     def __init_projects(self):
+        print('initializing gitlab project ...')
         project_data = {}
-        projects = self.__get_json('https://bj.git.sndu.cn/api/v3/projects')
+        projects = self.__get_json('https://bj.git.sndu.cn/api/v3/projects?per_page=100')
 
         for p in projects:
             proj_name = p.get('name')
