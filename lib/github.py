@@ -23,6 +23,9 @@ class GithubChecker(Singleton):
         else:
             self.project_data = self.__init_projects()
 
+    def get_name(self):
+        return 'Github checker'
+
 
     def __load_from_file(self, path):
         with open(path) as fp:
@@ -32,17 +35,18 @@ class GithubChecker(Singleton):
 
 
     def __get_json(self, url):
-        token = os.getenv('GITLAB_TOKEN')
+        token = os.getenv('GITHUB_TOKEN')
 
         if not token:
             c = Config()
-            token = c.data('gitlab', 'token')
+            token = c.data('github', 'token')
 
         h = {
-                'PRIVATE-TOKEN': token
+                'Authorization': 'token %s' % token
             }
         r = requests.get(url, headers=h)
         r_json = r.json()
+
         while True:
             if not r.headers.get('Link'):
                 break;
@@ -62,42 +66,45 @@ class GithubChecker(Singleton):
 
 
     def __init_projects(self):
+        print('initializing github project ...')
         project_data = {}
-        projects = self.__get_json('https://bj.git.sndu.cn/api/v3/projects')
+        projects = self.__get_json('https://api.github.com/users/linuxdeepin/repos?per_page=100')
 
         for p in projects:
             proj_name = p.get('name')
             print('getting project (%s)' % proj_name)
-            p_id = p.get('id')
-            branches = self.__get_branches(p_id)
+            branches = self.__get_branches(proj_name)
             project_data[proj_name] = {'branches': branches}
 
         return project_data
 
 
-    def __get_branches(self, p_id):
+    def __get_branches(self, proj_name):
         branches = {}
-        data = self.__get_json('https://bj.git.sndu.cn/api/v3/projects/%s/repository/branches' % p_id)
+        data = self.__get_json('https://api.github.com/repos/linuxdeepin/%s/branches' % proj_name)
 
-        for p in data:
-            name = p.get('name')
-            time_str = p.get('commit').get('committed_date')
-            ts = self.__handle_str_2_timestamp(time_str)
-            commit_id = p.get('commit').get('id')
+        for b in data:
+            name = b.get('name')
+            commit_id = b.get('commit').get('sha')
+            ts = self.__get_commit_timestamp(proj_name, commit_id)
             branches[name] = {'commit_id': commit_id, 'timestamp': ts}
 
         return branches
 
+    def __get_commit_timestamp(self, project, commit_id):
+        url = 'https://api.github.com/repos/linuxdeepin/%s/git/commits/%s' % (project, commit_id)
+        data = self.__get_json(url)
+        time_str = data.get('committer').get('date')
+        ts = self.__handle_str_2_timestamp(time_str)
+
+        return ts
+
 
     def __handle_str_2_timestamp(self, time_str):
-        # like: 2014-12-16T08:45:45.000+08:00
-        a = re.compile('.+(\.[0-9]{3})[+-].+')
-        spliter = a.findall(time_str)[0]
-        tmp_list = time_str.split(spliter)
-        time_base = tmp_list[0]
-        timezone = tmp_list[1].replace(":", "")
-        new_time_str = time_base + timezone
-        d = datetime.strptime(new_time_str, '%Y-%m-%dT%H:%M:%S%z')
+        # like: 2016-04-01T06:43:07Z
+        time_str = time_str.split('Z')[0]
+        time_str += '+0000'
+        d = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S%z')
 
         return d.timestamp()
 
