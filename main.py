@@ -19,6 +19,8 @@ DELTATIME_MINUTE = 10
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
+CHARGE_CACHE = os.getenv('CHARGE_CACHE')
+
 def check_commit_deltatime(commit_timestamp):
     now_ts = datetime.now().timestamp()
 
@@ -75,28 +77,29 @@ def check(base, target):
 def charge_cache():
     print('charging cache...')
 
+    os.makedirs('cache', exist_ok=True)
+
     gr_cache_file = 'cache/gitlab.json'
-    if not os.path.exists(gr_cache_file):
-        gr = Gerrit()
-        with open(gr_cache_file, 'w') as fp:
-            json.dump(gr.project_data, fp, indent=4, sort_keys=True)
+    gr = Gerrit()
+    with open(gr_cache_file, 'w') as fp:
+        json.dump(gr.project_data, fp, indent=4, sort_keys=True)
 
     gl_cache_file = 'cache/gitlab.json'
-    if not os.path.exists(gl_cache_file):
-        gl = GitlabChecker()
-        with open(gl_cache_file, 'w') as fp:
-            json.dump(gl.project_data, fp, indent=4, sort_keys=True)
+    gl = GitlabChecker()
+    with open(gl_cache_file, 'w') as fp:
+        json.dump(gl.project_data, fp, indent=4, sort_keys=True)
 
     gh_cache_file = 'cache/github.json'
-    if not os.path.exists(gh_cache_file):
-        gh = GithubChecker()
-        with open(gh_cache_file, 'w') as fp:
-            json.dump(gh.project_data, fp, indent=4, sort_keys=True)
+    gh = GithubChecker()
+    with open(gh_cache_file, 'w') as fp:
+        json.dump(gh.project_data, fp, indent=4, sort_keys=True)
 
 
 if __name__ == '__main__':
+    if CHARGE_CACHE:
+        charge_cache()
+
     if CACHE_MODE:
         print('cache mode(for debug), load data from cache file')
-        charge_cache()
 
     work()
