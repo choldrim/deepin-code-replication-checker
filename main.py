@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 
 import requests
+from terminaltables import SingleTable, AsciiTable
 
 from lib.gerrit import Gerrit
 from lib.gitlab import GitlabChecker
@@ -31,6 +32,8 @@ def check_commit_deltatime(commit_timestamp):
 
 
 def work():
+    results = {}
+
     checkers = []
     base = Gerrit()
 
@@ -39,23 +42,33 @@ def work():
 
     for c in checkers:
         print('xxxxxxxxxxxxxxxxxx %s xxxxxxxxxxxxxxxxxxxxxxx' % (c.get_name()))
-        check(base, c)
+        result = check(base, c)
+        results[c.get_name()] = result
+
+    gen_report(results)
 
 
 def check(base, target):
+    problems = {}
     base_projects = base.project_data
 
     for (project_orig_name, p) in base_projects.items():
+        problem = ''
         project_name = project_orig_name.split('/')[-1:][0]
         print()
         warning('----------------- %s ------------------' % project_name)
+
         if not target.check_project_exist(project_name):
-            fail('W: project (%s) not found' % project_name)
+            msg = 'project (%s) not found' % project_name
+            fail('P: ' + msg)
+            problem += msg + '\n'
             continue
 
         for (branch_name, b) in p.get('branches').items():
             if not target.check_branch_exist(project_name, branch_name):
-                fail('W: branch (%s) not found' % branch_name)
+                msg = 'branch (%s) not found' % branch_name
+                fail('P: ' + msg)
+                problem += msg + '\n'
                 continue
 
             # check commit id match
@@ -71,7 +84,49 @@ def check(base, target):
             else:
                 d1 = datetime.fromtimestamp(b.get('timestamp'))
                 d2 = datetime.fromtimestamp(target.get_timestamp(project_name, branch_name))
-                fail('W: target commit (%s) is fallen behind base (%s)' % (str(d2), str(d1)))
+                msg = 'latest commit time (%s) is older than gerrit commit time (%s)' % (str(d2), str(d1))
+                fail('P: ' + msg)
+                problem += msg + '\n'
+
+        if len(problem):
+            problems[project_name] = problem
+
+    return problems
+
+
+def gen_report(results):
+    is_jenkins = False if os.getenv('JENKINS_SERVER_COOKIE') == None else True
+
+    # ready reports file
+    if is_jenkins:
+        os.makedirs('reports', exist_ok=True)
+        fp = open('reports/index.html', 'w')
+
+    for (name, result) in results.items():
+        table_data = []
+        table_data.append(['project', 'problem(s)'])
+
+        for (proj_name, problem) in result.items():
+            table_data.append([proj_name, problem])
+
+        if is_jenkins:
+            term_table = AsciiTable(table_data, name)
+        else:
+            term_table = SingleTable(table_data, name)
+
+        term_table.inner_row_border = True
+        table_str = term_table.table
+
+        if is_jenkins:
+            table_html = table_str.replace('\n', '<br>').replace(' ', '&nbsp')
+            table_html = '<p>%s</p>' % table_html
+            fp.write(table_html)
+        else:
+            print(table_str)
+
+    if is_jenkins:
+        report_url = 'https://ci.deepin.io/job/%s/%s/HTML_Report/' % (os.getenv('JOB_NAME'), os.getenv('BUILD_NUMBER'))
+        print('check report in: %s' % report_url)
 
 
 def charge_cache():

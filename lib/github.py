@@ -24,7 +24,7 @@ class GithubChecker(Singleton):
             self.project_data = self.__init_projects()
 
     def get_name(self):
-        return 'Github checker'
+        return 'Github'
 
 
     def __load_from_file(self, path):

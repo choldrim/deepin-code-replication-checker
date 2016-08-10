@@ -25,7 +25,7 @@ class GitlabChecker(Singleton):
 
 
     def get_name(self):
-        return 'Gitlab checker'
+        return 'Gitlab'
 
 
     def __load_from_file(self, path):
