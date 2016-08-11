@@ -84,7 +84,7 @@ def check(base, target):
             else:
                 d1 = datetime.fromtimestamp(b.get('timestamp'))
                 d2 = datetime.fromtimestamp(target.get_timestamp(project_name, branch_name))
-                msg = 'latest commit time (%s) is older than gerrit commit time (%s)' % (str(d2), str(d1))
+                msg = 'branch (%s) latest commit time (%s) not match gerrit commit time (%s)' % (branch_name, str(d2), str(d1))
                 fail('P: ' + msg)
                 problem += msg + '\n'
 
