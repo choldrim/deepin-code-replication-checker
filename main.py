@@ -109,6 +109,7 @@ def gen_report(results):
         term_table = AsciiTable(table_data, name)
         term_table.inner_row_border = True
         table_str = term_table.table
+        table_str = '\n\n' + table_str
         table_html = table_str.replace('\n', '<br>').replace(' ', '&nbsp')
         table_html = '<p>%s</p>' % table_html
         fp.write(table_html)
@@ -116,7 +117,7 @@ def gen_report(results):
 
     if os.getenv('JOB_NAME') and os.getenv('BUILD_NUMBER'):
         report_url = 'https://ci.deepin.io/job/%s/%s/HTML_Report/' % (os.getenv('JOB_NAME'), os.getenv('BUILD_NUMBER'))
-        print('For jenkins console: %s' % report_url)
+        print('Results Report: %s' % report_url)
 
 
 def charge_cache():
