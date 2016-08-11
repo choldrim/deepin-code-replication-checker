@@ -95,12 +95,9 @@ def check(base, target):
 
 
 def gen_report(results):
-    is_jenkins = False if os.getenv('JENKINS_SERVER_COOKIE') == None else True
-
     # ready reports file
-    if is_jenkins:
-        os.makedirs('reports', exist_ok=True)
-        fp = open('reports/index.html', 'w')
+    os.makedirs('reports', exist_ok=True)
+    fp = open('reports/index.html', 'w')
 
     for (name, result) in results.items():
         table_data = []
@@ -109,24 +106,17 @@ def gen_report(results):
         for (proj_name, problem) in result.items():
             table_data.append([proj_name, problem])
 
-        if is_jenkins:
-            term_table = AsciiTable(table_data, name)
-        else:
-            term_table = SingleTable(table_data, name)
-
+        term_table = AsciiTable(table_data, name)
         term_table.inner_row_border = True
         table_str = term_table.table
+        table_html = table_str.replace('\n', '<br>').replace(' ', '&nbsp')
+        table_html = '<p>%s</p>' % table_html
+        fp.write(table_html)
+        print(table_str)
 
-        if is_jenkins:
-            table_html = table_str.replace('\n', '<br>').replace(' ', '&nbsp')
-            table_html = '<p>%s</p>' % table_html
-            fp.write(table_html)
-        else:
-            print(table_str)
-
-    if is_jenkins:
+    if os.getenv('JOB_NAME') and os.getenv('BUILD_NUMBER'):
         report_url = 'https://ci.deepin.io/job/%s/%s/HTML_Report/' % (os.getenv('JOB_NAME'), os.getenv('BUILD_NUMBER'))
-        print('check report in: %s' % report_url)
+        print('For jenkins console: %s' % report_url)
 
 
 def charge_cache():
