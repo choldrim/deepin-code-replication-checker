@@ -61,7 +61,8 @@ def check(base, target):
         if not target.check_project_exist(project_name):
             msg = 'project (%s) not found' % project_name
             fail('P: ' + msg)
-            problem += msg + '\n'
+            problem += 'project not found\n'
+            problems[project_name] = problem
             continue
 
         for (branch_name, b) in p.get('branches').items():
