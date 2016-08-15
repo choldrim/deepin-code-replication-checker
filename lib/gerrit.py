@@ -3,22 +3,42 @@ import os
 from datetime import datetime
 
 import requests
+from requests.auth import HTTPDigestAuth
 
+from utils.config import Config
 from utils.singleton import Singleton
 
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
+GERRIT_BASE='https://cr.deepin.io'
+GERRIT_AUTH_BASE='https://cr.deepin.io/a'
+
 class Gerrit(Singleton):
+
     def __init__(self):
         if hasattr(self, '_init'):
             return
         self._init = True
 
+        if os.getenv('GERRIT_USERNAME') and os.getenv('GERRIT_PASSWORD'):
+            self.auth = HTTPDigestAuth(os.getenv('GERRIT_USERNAME'), os.getenv('GERRIT_PASSWORD'))
+        else:
+            c = Config()
+            self.auth = HTTPDigestAuth(c.data('gerrit', 'username'), c.data('gerrit', 'password'))
+
         if CACHE_MODE:
             self.project_data = self.__load_from_file('cache/gerrit.json')
         else:
+            print('initializing all gerrit project ...')
+            self.with_auth = True
+            self.project_data_with_private = self.__init_projects()
+
+            print('initializing public gerrit project ...')
+            self.with_auth = False
             self.project_data = self.__init_projects()
+
+
 
     def __load_from_file(self, path):
         with open(path) as fp:
@@ -27,8 +47,14 @@ class Gerrit(Singleton):
         return data
 
 
-    def __get_json(self, url):
-        r = requests.get(url)
+    def __get_json(self, path):
+        if self.with_auth:
+            url = '%s%s' % (GERRIT_AUTH_BASE, path)
+            r = requests.get(url, auth=self.auth)
+        else:
+            url = '%s%s' % (GERRIT_BASE, path)
+            r = requests.get(url)
+
         text = r.text.split('\n', 1)[1]  # remove first line
         data = json.loads(text)
 
@@ -36,9 +62,8 @@ class Gerrit(Singleton):
 
 
     def __init_projects(self):
-        print('initializing gerrit project ...')
         project_data = {}
-        data = self.__get_json('https://cr.deepin.io/projects/')
+        data = self.__get_json('/projects/')
 
         for (proj_name, p) in data.items():
             print('getting project (%s)' % proj_name)
@@ -50,7 +75,7 @@ class Gerrit(Singleton):
 
 
     def __get_commit_timestamp(self, project, commit_id):
-        url = 'https://cr.deepin.io/projects/%s/commits/%s' % (project, commit_id)
+        url = '/projects/%s/commits/%s' % (project, commit_id)
         data = self.__get_json(url)
         time_str = data.get('committer').get('date')
         time_str = time_str.split('.')[0]
@@ -62,7 +87,7 @@ class Gerrit(Singleton):
 
     def __get_branches(self, proj_name):
         branches = {}
-        data = self.__get_json('https://cr.deepin.io/projects/%s/branches' % proj_name)
+        data = self.__get_json('/projects/%s/branches' % proj_name)
 
         for p in data:
             if p.get('ref') == 'HEAD':

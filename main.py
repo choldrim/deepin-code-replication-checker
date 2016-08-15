@@ -34,23 +34,26 @@ def check_commit_deltatime(commit_timestamp):
 def work():
     results = {}
 
-    checkers = []
     base = Gerrit()
+    gl = GitlabChecker()
+    gh = GithubChecker()
 
-    checkers.append(GitlabChecker())
-    checkers.append(GithubChecker())
+    print('xxxxxxxxxxxxxxxxxx %s xxxxxxxxxxxxxxxxxxxxxxx' % (gl.get_name()))
+    results[gl.get_name()] = check(base, gl, with_private=True)
 
-    for c in checkers:
-        print('xxxxxxxxxxxxxxxxxx %s xxxxxxxxxxxxxxxxxxxxxxx' % (c.get_name()))
-        result = check(base, c)
-        results[c.get_name()] = result
+    print('xxxxxxxxxxxxxxxxxx %s xxxxxxxxxxxxxxxxxxxxxxx' % (gh.get_name()))
+    results[gh.get_name()] = check(base, gh)
 
     gen_report(results)
 
 
-def check(base, target):
+def check(base, target, with_private=False):
     problems = {}
-    base_projects = base.project_data
+
+    if with_private:
+        base_projects = base.project_data_with_private
+    else:
+        base_projects = base.project_data
 
     for (project_orig_name, p) in base_projects.items():
         problem = ''
