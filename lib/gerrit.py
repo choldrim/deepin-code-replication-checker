@@ -90,12 +90,12 @@ class Gerrit(Singleton):
         data = self.__get_json('/projects/%s/branches' % proj_name)
 
         for p in data:
-            if p.get('ref') == 'HEAD':
-                continue
-
             name = p.get('ref')
 
-            if 'refs/heads/' in name:
+            if not name.startswith('refs/heads'):
+                continue
+
+            if name.startswith('refs/heads/'):
                 name = name.split('refs/heads/')[1]
 
             commit_id = p.get('revision')
