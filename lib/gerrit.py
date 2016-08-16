@@ -14,6 +14,8 @@ CACHE_MODE = os.getenv('CACHE_MODE')
 GERRIT_BASE='https://cr.deepin.io'
 GERRIT_AUTH_BASE='https://cr.deepin.io/a'
 
+FILTER_PREFIX = ['old/']
+
 class Gerrit(Singleton):
 
     def __init__(self):
@@ -61,11 +63,22 @@ class Gerrit(Singleton):
         return data
 
 
+    def __check_prefix_with_filter(self, proj_name):
+        for prefix in FILTER_PREFIX:
+            if proj_name.startswith(prefix):
+                return True
+
+        return False
+
+
     def __init_projects(self):
         project_data = {}
         data = self.__get_json('/projects/')
 
         for (proj_name, p) in data.items():
+            if self.__check_prefix_with_filter(proj_name):
+                continue
+
             print('getting project (%s)' % proj_name)
             p_id = p.get('id')
             branches = self.__get_branches(p_id)
