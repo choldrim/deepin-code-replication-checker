@@ -11,10 +11,11 @@ from utils.singleton import Singleton
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
-GERRIT_BASE='https://cr.deepin.io'
-GERRIT_AUTH_BASE='https://cr.deepin.io/a'
-
+# base
+GERRIT_BASE = 'https://cr.deepin.io'
+GERRIT_AUTH_BASE = 'https://cr.deepin.io/a'
 FILTER_PREFIX = ['old/']
+
 
 class Gerrit(Singleton):
 
@@ -30,24 +31,22 @@ class Gerrit(Singleton):
             self.auth = HTTPDigestAuth(c.data('gerrit', 'username'), c.data('gerrit', 'password'))
 
         if CACHE_MODE:
-            self.project_data = self.__load_from_file('cache/gerrit.json')
+            self.project_data_public = self.__load_from_file('cache/gerrit_public.json')
+            self.project_data_all = self.__load_from_file('cache/gerrit_all.json')
         else:
             print('initializing all gerrit project ...')
             self.with_auth = True
-            self.project_data_with_private = self.__init_projects()
+            self.project_data_all = self.__init_projects()
 
             print('initializing public gerrit project ...')
             self.with_auth = False
-            self.project_data = self.__init_projects()
-
-
+            self.project_data_public = self.__init_projects()
 
     def __load_from_file(self, path):
         with open(path) as fp:
             data = json.load(fp)
 
         return data
-
 
     def __get_json(self, path):
         if self.with_auth:
@@ -62,14 +61,12 @@ class Gerrit(Singleton):
 
         return data
 
-
     def __check_prefix_with_filter(self, proj_name):
         for prefix in FILTER_PREFIX:
             if proj_name.startswith(prefix):
                 return True
 
         return False
-
 
     def __init_projects(self):
         project_data = {}
@@ -86,7 +83,6 @@ class Gerrit(Singleton):
 
         return project_data
 
-
     def __get_commit_timestamp(self, project, commit_id):
         url = '/projects/%s/commits/%s' % (project, commit_id)
         data = self.__get_json(url)
@@ -96,7 +92,6 @@ class Gerrit(Singleton):
         timestamp = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S%z').timestamp()
 
         return timestamp
-
 
     def __get_branches(self, proj_name):
         branches = {}
@@ -116,4 +111,3 @@ class Gerrit(Singleton):
             branches[name] = {'commit_id': commit_id, 'timestamp': ts}
 
         return branches
-

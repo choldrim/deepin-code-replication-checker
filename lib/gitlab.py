@@ -11,6 +11,7 @@ from utils.config import Config
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
+
 class GitlabChecker(Singleton):
 
     def __init__(self):
@@ -23,17 +24,14 @@ class GitlabChecker(Singleton):
         else:
             self.project_data = self.__init_projects()
 
-
     def get_name(self):
         return 'Gitlab'
-
 
     def __load_from_file(self, path):
         with open(path) as fp:
             data = json.load(fp)
 
         return data
-
 
     def __get_json(self, url):
         token = os.getenv('GITLAB_TOKEN')
@@ -47,13 +45,13 @@ class GitlabChecker(Singleton):
         r_json = r.json()
         while True:
             if not r.headers.get('Link'):
-                break;
+                break
 
             a = re.compile('.*<(.+)>; rel="next".*')
             re_list = a.findall(r.headers.get('Link'))
 
             if not len(re_list):
-                break;
+                break
 
             next_link = re_list[0]
 
@@ -61,7 +59,6 @@ class GitlabChecker(Singleton):
             r_json += r.json()
 
         return r_json
-
 
     def __init_projects(self):
         print('initializing gitlab project ...')
@@ -77,7 +74,6 @@ class GitlabChecker(Singleton):
 
         return project_data
 
-
     def __get_branches(self, p_id):
         branches = {}
         data = self.__get_json('https://bj.git.sndu.cn/api/v3/projects/%s/repository/branches' % p_id)
@@ -91,7 +87,6 @@ class GitlabChecker(Singleton):
 
         return branches
 
-
     def __handle_str_2_timestamp(self, time_str):
         # like: 2014-12-16T08:45:45.000+08:00
         a = re.compile('.+(\.[0-9]{3})[+-].+')
@@ -104,13 +99,11 @@ class GitlabChecker(Singleton):
 
         return d.timestamp()
 
-
     def check_project_exist(self, project_name):
         if project_name in self.project_data:
             return True
 
         return False
-
 
     def check_branch_exist(self, project_name, branch_name):
         if project_name in self.project_data \
@@ -118,7 +111,6 @@ class GitlabChecker(Singleton):
             return True
 
         return False
-
 
     def check_branch_commit(self, project_name, branch_name, commit_id):
         if project_name in self.project_data \
@@ -137,3 +129,12 @@ class GitlabChecker(Singleton):
             return ts
 
         return 0
+
+    def get_latest_commit(self, project_name, branch_name):
+        if project_name in self.project_data \
+                and branch_name in self.project_data.get(project_name).get('branches'):
+            comm = self.project_data.get(project_name).get('branches').get(branch_name)\
+                    .get('commit_id')
+            return comm
+
+        return ''

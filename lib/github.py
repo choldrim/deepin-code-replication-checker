@@ -11,6 +11,7 @@ from utils.config import Config
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
 
+
 class GithubChecker(Singleton):
 
     def __init__(self):
@@ -26,13 +27,11 @@ class GithubChecker(Singleton):
     def get_name(self):
         return 'Github'
 
-
     def __load_from_file(self, path):
         with open(path) as fp:
             data = json.load(fp)
 
         return data
-
 
     def __get_json(self, url):
         token = os.getenv('GITHUB_TOKEN')
@@ -49,13 +48,13 @@ class GithubChecker(Singleton):
 
         while True:
             if not r.headers.get('Link'):
-                break;
+                break
 
             a = re.compile('.*<(.+)>; rel="next".*')
             re_list = a.findall(r.headers.get('Link'))
 
             if not len(re_list):
-                break;
+                break
 
             next_link = re_list[0]
 
@@ -63,7 +62,6 @@ class GithubChecker(Singleton):
             r_json += r.json()
 
         return r_json
-
 
     def __init_projects(self):
         print('initializing github project ...')
@@ -77,7 +75,6 @@ class GithubChecker(Singleton):
             project_data[proj_name] = {'branches': branches}
 
         return project_data
-
 
     def __get_branches(self, proj_name):
         branches = {}
@@ -99,7 +96,6 @@ class GithubChecker(Singleton):
 
         return ts
 
-
     def __handle_str_2_timestamp(self, time_str):
         # like: 2016-04-01T06:43:07Z
         time_str = time_str.split('Z')[0]
@@ -108,13 +104,11 @@ class GithubChecker(Singleton):
 
         return d.timestamp()
 
-
     def check_project_exist(self, project_name):
         if project_name in self.project_data:
             return True
 
         return False
-
 
     def check_branch_exist(self, project_name, branch_name):
         if project_name in self.project_data \
@@ -122,7 +116,6 @@ class GithubChecker(Singleton):
             return True
 
         return False
-
 
     def check_branch_commit(self, project_name, branch_name, commit_id):
         if project_name in self.project_data \
@@ -142,3 +135,11 @@ class GithubChecker(Singleton):
 
         return 0
 
+    def get_latest_commit(self, project_name, branch_name):
+        if project_name in self.project_data \
+                and branch_name in self.project_data.get(project_name).get('branches'):
+            comm = self.project_data.get(project_name).get('branches').get(branch_name)\
+                    .get('commit_id')
+            return comm
+
+        return ''

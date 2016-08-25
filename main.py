@@ -4,8 +4,7 @@ import json
 import os
 from datetime import datetime
 
-import requests
-from terminaltables import SingleTable, AsciiTable
+from terminaltables import AsciiTable
 
 from lib.gerrit import Gerrit
 from lib.gitlab import GitlabChecker
@@ -13,12 +12,12 @@ from lib.github import GithubChecker
 from utils.color_print import warning
 from utils.color_print import success
 from utils.color_print import fail
-from utils.color_print import info
 
 DELTATIME_MINUTE = 10
 
 # for debug
 CACHE_MODE = os.getenv('CACHE_MODE')
+
 
 def check_commit_deltatime(commit_timestamp):
     now_ts = datetime.now().timestamp()
@@ -51,9 +50,9 @@ def check(base, target, with_private=False):
     problems = {}
 
     if with_private:
-        base_projects = base.project_data_with_private
+        base_projects = base.project_data_all
     else:
-        base_projects = base.project_data
+        base_projects = base.project_data_public
 
     for (project_orig_name, p) in base_projects.items():
         problem = ''
@@ -88,7 +87,10 @@ def check(base, target, with_private=False):
             else:
                 d1 = datetime.fromtimestamp(b.get('timestamp'))
                 d2 = datetime.fromtimestamp(target.get_timestamp(project_name, branch_name))
-                msg = 'branch (%s) latest commit time (%s) not match gerrit commit time (%s)' % (branch_name, str(d2), str(d1))
+                target_commit = target.get_latest_commit(project_name, branch_name)[:7]
+                base_commit = b.get('commit_id')[:7]
+                msg = 'target branch (%s) latest commit(%s) time(%s) != gerrit latest commit(%s) time(%s)' % (branch_name, target_commit,
+                                                                                                              str(d2), base_commit, str(d1))
                 fail('P: ' + msg)
                 problem += msg + '\n'
 
@@ -129,9 +131,13 @@ def charge_cache(gr, gl, gh):
 
     os.makedirs('cache', exist_ok=True)
 
-    gr_cache_file = 'cache/gerrit.json'
+    gr_cache_file = 'cache/gerrit_public.json'
     with open(gr_cache_file, 'w') as fp:
-        json.dump(gr.project_data_with_private, fp, indent=4, sort_keys=True)
+        json.dump(gr.project_data_public, fp, indent=4, sort_keys=True)
+
+    gr_cache_file = 'cache/gerrit_all.json'
+    with open(gr_cache_file, 'w') as fp:
+        json.dump(gr.project_data_all, fp, indent=4, sort_keys=True)
 
     gl_cache_file = 'cache/gitlab.json'
     with open(gl_cache_file, 'w') as fp:
