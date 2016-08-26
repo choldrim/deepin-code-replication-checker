@@ -9,6 +9,7 @@ from terminaltables import AsciiTable
 from lib.gerrit import Gerrit
 from lib.gitlab import GitlabChecker
 from lib.github import GithubChecker
+from lib.bearychat import Bearychat
 from utils.color_print import warning
 from utils.color_print import success
 from utils.color_print import fail
@@ -44,6 +45,8 @@ def work():
     results[gh.get_name()] = check(base, gh)
 
     gen_report(results)
+
+    push_bc_msg(results)
 
 
 def check(base, target, with_private=False):
@@ -124,6 +127,19 @@ def gen_report(results):
     if os.getenv('JOB_NAME') and os.getenv('BUILD_NUMBER'):
         report_url = 'https://ci.deepin.io/job/%s/%s/HTML_Report/' % (os.getenv('JOB_NAME'), os.getenv('BUILD_NUMBER'))
         print('Results Report: %s' % report_url)
+
+
+def push_bc_msg(results):
+    problem_str = ""
+    for (t, projects) in results.items():
+        if len(projects):
+            problem_str += "-- **%s** --\n" % t
+
+        for (proj_name, problem) in projects.items():
+            problem_str += "%s: %s\n" % (proj_name, problem)
+
+    bc = Bearychat()
+    bc.say(problem_str)
 
 
 def charge_cache(gr, gl, gh):
