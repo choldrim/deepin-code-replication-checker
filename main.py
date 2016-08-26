@@ -44,12 +44,6 @@ def work():
     results[gh.get_name()] = check(base, gh)
 
     gen_report(results)
-    # for return code
-    for (item, problems) in results.items():
-        if len(problems) > 0:
-            return 1
-
-    return 0
 
 
 def check(base, target, with_private=False):
@@ -158,4 +152,4 @@ if __name__ == '__main__':
     if CACHE_MODE:
         print('cache mode(for debug), load data from cache file')
 
-    quit(work())
+    work()
