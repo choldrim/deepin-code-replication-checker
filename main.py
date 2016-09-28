@@ -85,15 +85,19 @@ def check(base, target, with_private=False):
             # else, check commit deltatime
             if check_commit_deltatime(b.get('timestamp')):
                 d = datetime.fromtimestamp(b.get('timestamp'))
-                print('may be a young commit on %s, skip' % str(d))
+                print('maybe a young commit on %s, skip' % str(d))
                 continue
             else:
-                d1 = datetime.fromtimestamp(b.get('timestamp'))
-                d2 = datetime.fromtimestamp(target.get_timestamp(project_name, branch_name))
+                base_commit_time = datetime.fromtimestamp(b.get('timestamp'))
+                target_commit_time = datetime.fromtimestamp(target.get_timestamp(project_name, branch_name))
+                if target_commit_time > base_commit_time:
+                    print('maybe commit during checking process')
+                    continue
+
                 target_commit = target.get_latest_commit(project_name, branch_name)[:7]
                 base_commit = b.get('commit_id')[:7]
-                msg = 'target branch (%s) latest commit(%s) time(%s) != gerrit latest commit(%s) time(%s)' % (branch_name, target_commit,
-                                                                                                              str(d2), base_commit, str(d1))
+                msg = 'target branch (%s) latest commit(%s) time(%s) != gerrit latest commit(%s) time(%s)' \
+                      % (branch_name, target_commit, str(target_commit_time), base_commit, str(base_commit_time))
                 fail('P: ' + msg)
                 problem += msg + '\n'
 
