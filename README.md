@@ -17,4 +17,4 @@ ssh choldrim@cr.deepin.io -p 29418 replication start it/docker-services
 ```
 
 ## replication log
-`${gerrit_home}/logs/replication_log`
+排查问题很多时候会用到gerrit的replication日志，位置在对应server的：`${gerrit_home}/logs/replication_log`
